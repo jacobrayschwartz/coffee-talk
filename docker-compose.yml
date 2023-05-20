@@ -1,0 +1,57 @@
+version: "3.9"
+services:
+  http:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/http/Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - coffee_time
+    depends_on:
+      - db_migrate
+    environment:
+      coffee_time_PORT: "8080"
+      DB_USER: "coffee_time"
+      DB_PASS: "coffee_time"
+      DB_PORT: "5432"
+      DB_DATABASE: "coffee_time"
+      DB_HOST: "coffee_time_db"
+    volumes:
+      - coffee_time-development_volume:/var/lib/postgresql/data
+
+
+  coffee_time_db:
+    image: postgres:15.1
+    environment:
+      POSTGRES_USER: "coffee_time"
+      POSTGRES_PASSWORD: "coffee_time"
+      POSTGRES_DB: "coffee_time"
+    ports:
+      - "5432:5432"
+    networks:
+      - coffee_time
+
+  db_migrate:
+    image: flyway/flyway:latest
+    depends_on:
+      - coffee_time_db
+    networks:
+      - coffee_time
+    command:
+      - migrate
+    volumes:
+      - ./src/main/resources/db/migrations:/flyway/sql
+    environment:
+      - FLYWAY_USER=coffee_time
+      - FLYWAY_PASSWORD=coffee_time
+      - FLYWAY_URL=jdbc:postgresql://coffee_time_db:5432/coffee_time
+      - FLYWAY_SCHEMAS=public
+
+
+networks:
+  coffee_time:
+
+
+volumes:
+  coffee_time-development_volume:
