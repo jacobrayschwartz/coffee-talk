@@ -1,4 +1,4 @@
-package com.jacobrayschwartz.plugins
+package com.jacobrayschwartz.coffeetime.plugins
 
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*

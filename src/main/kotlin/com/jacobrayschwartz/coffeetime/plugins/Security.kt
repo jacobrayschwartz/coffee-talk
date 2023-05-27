@@ -1,4 +1,4 @@
-package com.jacobrayschwartz.plugins
+package com.jacobrayschwartz.coffeetime.plugins
 
 import io.ktor.server.auth.*
 import io.ktor.server.response.*

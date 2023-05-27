@@ -11,10 +11,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.8.21"
 }
 
-group = "com.jacobrayschwartz"
+group = "com.jacobrayschwartz.coffeetime"
 version = "0.0.1"
 application {
-    mainClass.set("com.jacobrayschwartz.ApplicationKt")
+    mainClass.set("com.jacobrayschwartz.coffeetime.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")

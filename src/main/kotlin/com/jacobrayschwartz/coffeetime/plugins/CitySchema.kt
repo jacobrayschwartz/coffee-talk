@@ -1,4 +1,4 @@
-package com.jacobrayschwartz.plugins
+package com.jacobrayschwartz.coffeetime.plugins
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable

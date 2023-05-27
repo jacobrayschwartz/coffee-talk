@@ -1,4 +1,4 @@
-package com.jacobrayschwartz.plugins
+package com.jacobrayschwartz.coffeetime.plugins
 
 import io.micrometer.prometheus.*
 import io.ktor.server.metrics.micrometer.*

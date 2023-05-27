@@ -1,4 +1,4 @@
-package com.jacobrayschwartz.plugins
+package com.jacobrayschwartz.coffeetime.plugins
 
 import io.ktor.server.plugins.openapi.*
 import io.ktor.server.routing.*

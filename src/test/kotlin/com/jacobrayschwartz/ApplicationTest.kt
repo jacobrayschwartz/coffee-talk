@@ -1,11 +1,11 @@
-package com.jacobrayschwartz
+package com.jacobrayschwartz.coffeetime
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.server.testing.*
 import kotlin.test.*
 import io.ktor.http.*
-import com.jacobrayschwartz.plugins.*
+import com.jacobrayschwartz.coffeetime.plugins.*
 
 class ApplicationTest {
     @Test
