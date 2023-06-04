@@ -5,6 +5,7 @@ val prometeus_version: String by project
 val postgres_version: String by project
 val h2_version: String by project
 val okta_jwt_version: String by project
+val koin_version: String by project
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -50,4 +51,10 @@ dependencies {
 
     implementation("com.okta.jwt:okta-jwt-verifier:$okta_jwt_version")
     implementation("com.okta.jwt:okta-jwt-verifier-impl:$okta_jwt_version")
+
+    implementation("io.insert-koin:koin-core:$koin_version")
+    implementation("io.insert-koin:koin-ktor:$koin_version")
+    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
+    testImplementation("io.insert-koin:koin-test:$koin_version")
+    testImplementation("io.insert-koin:koin-test-junit5:$koin_version")
 }

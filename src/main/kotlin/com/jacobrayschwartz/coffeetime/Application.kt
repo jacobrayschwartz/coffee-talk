@@ -14,6 +14,7 @@ import com.typesafe.config.ConfigFactory
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 fun Application.module() {
+    configureDependencyInjection(environment.config)
     configureSecurity(environment.config)
     //configureHTTP()
     configureMonitoring()
