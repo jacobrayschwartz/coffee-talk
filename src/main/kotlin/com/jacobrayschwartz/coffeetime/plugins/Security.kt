@@ -1,97 +1,87 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
-import io.ktor.server.auth.*
-import io.ktor.server.response.*
-import io.ktor.server.auth.jwt.*
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
+import com.jacobrayschwartz.coffeetime.security.asOAuth2Config
+import com.jacobrayschwartz.coffeetime.security.oktaConfigReader
+import com.okta.jwt.JwtVerifiers
 import io.ktor.client.*
-import io.ktor.client.engine.apache.*
-import io.ktor.http.*
-import io.ktor.server.sessions.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.config.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
+import io.ktor.util.*
+import kotlin.collections.set
 
-fun Application.configureSecurity() {
+fun Application.configureSecurity(configuration: ApplicationConfig) {
 
-    authentication {
-        basic(name = "myauth1") {
-            realm = "Ktor Server"
-            validate { credentials ->
-                if (credentials.name == credentials.password) {
-                    UserIdPrincipal(credentials.name)
-                } else {
-                    null
+    install(Sessions) {
+        val secretEncryptKey = hex(configuration.tryGetString("security.sessionEncryptKey") ?: throw IllegalArgumentException("Session encrypt key is required"))
+        val secretSignKey = hex(configuration.tryGetString("security.sessionSignKey") ?: throw IllegalArgumentException("Session sign key is required"))
+        cookie<UserSession>("COFFEE_TIME_SESSION") {
+            cookie.path = "/"
+            cookie.maxAgeInSeconds = 10
+            transform(SessionTransportTransformerEncrypt(secretEncryptKey, secretSignKey))
+        }
+    }
+
+    if (configuration.propertyOrNull("security.okta") != null) {
+        val oktaConfig = oktaConfigReader(configuration)
+        val redirects = mutableMapOf<String, String>()
+
+        val accessTokenVerifier = JwtVerifiers.accessTokenVerifierBuilder()
+            .setAudience(oktaConfig.audience)
+            .setIssuer(oktaConfig.orgUrl)
+            .build()
+        val idVerifier = JwtVerifiers.idTokenVerifierBuilder()
+            .setClientId(oktaConfig.clientId)
+            .setIssuer(oktaConfig.orgUrl)
+            .build()
+        authentication {
+
+            oauth("okta") {
+                urlProvider = { "http://localhost:8080/login/authorization-callback" }
+                providerLookup = { oktaConfig.asOAuth2Config{ call, state ->
+                    redirects[state] = call.request.queryParameters["redirectUrl"] ?: "/"
+                } }
+                client = HttpClient()
+            }
+        }
+        routing {
+            authenticate("okta") {
+
+                get("login") {
+                    //call.respondRedirect("/login/authorization-callback")
                 }
-            }
-        }
 
-        form(name = "myauth2") {
-            userParamName = "user"
-            passwordParamName = "password"
-            challenge {
-                /**/
-            }
-        }
-    }
-    authentication {
-        jwt {
-            val jwtAudience = this@configureSecurity.environment.config.property("jwt.audience").getString()
-            realm = this@configureSecurity.environment.config.property("jwt.realm").getString()
-            verifier(
-                JWT
-                    .require(Algorithm.HMAC256("secret"))
-                    .withAudience(jwtAudience)
-                    .withIssuer(this@configureSecurity.environment.config.property("jwt.domain").getString())
-                    .build()
-            )
-            validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
-            }
-        }
-    }
-    authentication {
-        oauth("auth-oauth-google") {
-            urlProvider = { "http://localhost:8080/callback" }
-            providerLookup = {
-                OAuthServerSettings.OAuth2ServerSettings(
-                    name = "google",
-                    authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
-                    accessTokenUrl = "https://accounts.google.com/o/oauth2/token",
-                    requestMethod = HttpMethod.Post,
-                    clientId = System.getenv("GOOGLE_CLIENT_ID"),
-                    clientSecret = System.getenv("GOOGLE_CLIENT_SECRET"),
-                    defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.profile")
-                )
-            }
-            client = HttpClient(Apache)
-        }
-    }
-    routing {
-        authenticate("myauth1") {
-            get("/protected/route/basic") {
-                val principal = call.principal<UserIdPrincipal>()!!
-                call.respondText("Hello ${principal.name}")
-            }
-        }
-        authenticate("myauth2") {
-            get("/protected/route/form") {
-                val principal = call.principal<UserIdPrincipal>()!!
-                call.respondText("Hello ${principal.name}")
-            }
-        }
-        authenticate("auth-oauth-google") {
-            get("login") {
-                call.respondRedirect("/callback")
-            }
+                get("login/authorization-callback") {
+                    // Get a principal from OAuth2 token
+                    val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>()
+                        ?: throw Exception("No principal was given")
+                    // Parse and verify access token with OktaJwtVerifier
+                    val accessToken = accessTokenVerifier.decode(principal.accessToken)
+                    // Get idTokenString, parse and verify id token
+                    val idTokenString = principal.extraParameters["id_token"]
+                        ?: throw Exception("id_token wasn't returned")
+                    val idToken = idVerifier.decode(idTokenString, null)
+                    // Try to get handle from the id token, of failback to subject field in access token
+                    val fullName = (idToken.claims["name"] ?: accessToken.claims["sub"] ?: "UNKNOWN_NAME").toString()
+                    println("User $fullName logged in successfully")
+                    // Create a session object with "slugified" username
+                    val session = UserSession(
+                        username = idToken.claims["preferred_username"]?.toString() ?: fullName.replace("[^a-zA-Z0-9]".toRegex(), ""),
+                        accessToken = idTokenString,
+                        name = fullName
+                    )
 
-            get("/callback") {
-                val principal: OAuthAccessTokenResponse.OAuth2? = call.authentication.principal()
-                call.sessions.set(UserSession(principal?.accessToken.toString()))
-                call.respondRedirect("/hello")
+                    call.sessions.set(session)
+
+                    val redirect = redirects[principal.state!!]
+                    call.respondRedirect(redirect!!)
+                }
             }
         }
     }
 }
 
-class UserSession(accessToken: String)
+data class UserSession(val username: String, val accessToken: String, val name: String)

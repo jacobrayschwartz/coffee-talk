@@ -4,6 +4,7 @@ val logback_version: String by project
 val prometeus_version: String by project
 val postgres_version: String by project
 val h2_version: String by project
+val okta_jwt_version: String by project
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -26,6 +27,8 @@ repositories {
 
 dependencies {
     implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
+    implementation("io.ktor:ktor-server-sessions:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktor_version")
     implementation("io.ktor:ktor-client-core-jvm:$ktor_version")
@@ -40,6 +43,11 @@ dependencies {
     implementation("io.ktor:ktor-server-websockets-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("io.ktor:ktor-server-sessions-jvm:2.3.0")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+
+
+    implementation("com.okta.jwt:okta-jwt-verifier:$okta_jwt_version")
+    implementation("com.okta.jwt:okta-jwt-verifier-impl:$okta_jwt_version")
 }

@@ -17,6 +17,8 @@ services:
       DB_PORT: "5432"
       DB_DATABASE: "coffee_time"
       DB_HOST: "coffee_time_db"
+    env_file:
+      - .env
     volumes:
       - coffee_time-development_volume:/var/lib/postgresql/data
 
