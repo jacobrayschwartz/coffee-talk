@@ -19,11 +19,9 @@ services:
       DB_HOST: "coffee_time_db"
     env_file:
       - .env
-    volumes:
-      - coffee_time-development_volume:/var/lib/postgresql/data
 
 
-  coffee_time_db:
+  pg:
     image: postgres:15.1
     environment:
       POSTGRES_USER: "coffee_time"
@@ -33,11 +31,13 @@ services:
       - "5432:5432"
     networks:
       - coffee_time
+    volumes:
+      - coffee_time-development_volume:/var/lib/postgresql/data
 
   db_migrate:
     image: flyway/flyway:latest
     depends_on:
-      - coffee_time_db
+      - pg
     networks:
       - coffee_time
     command:
@@ -47,7 +47,7 @@ services:
     environment:
       - FLYWAY_USER=coffee_time
       - FLYWAY_PASSWORD=coffee_time
-      - FLYWAY_URL=jdbc:postgresql://coffee_time_db:5432/coffee_time
+      - FLYWAY_URL=jdbc:postgresql://pg:5432/coffee_time
       - FLYWAY_SCHEMAS=public
 
 

@@ -4,10 +4,10 @@ create table coffee_board(
     description varchar
 );
 
-create table coffee_board_columns(
+create table coffee_board_lanes(
     coffee_board_id bigint,
-    column_order int not null,
-    column_name varchar not null,
-    column_description varchar not null,
+    lane_order int not null,
+    lane_name varchar not null,
+    lane_description varchar not null,
     foreign key(coffee_board_id) references coffee_board(id) on delete cascade on update cascade
 );
