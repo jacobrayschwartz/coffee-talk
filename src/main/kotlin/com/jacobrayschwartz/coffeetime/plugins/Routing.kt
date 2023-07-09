@@ -1,10 +1,7 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
+import com.jacobrayschwartz.coffeetime.models.auth.UserSession
 import io.ktor.http.*
-import io.ktor.http.headers
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.application.*

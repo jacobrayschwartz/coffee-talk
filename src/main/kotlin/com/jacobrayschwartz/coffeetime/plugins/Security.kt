@@ -1,6 +1,7 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
-import com.jacobrayschwartz.coffeetime.modules.SecurityProvider
+import com.jacobrayschwartz.coffeetime.models.auth.UserSession
+import com.jacobrayschwartz.coffeetime.modules.security.SecurityProvider
 import com.jacobrayschwartz.coffeetime.security.asOAuth2Config
 import com.jacobrayschwartz.coffeetime.security.oktaConfigReader
 import io.ktor.client.*
@@ -46,44 +47,49 @@ fun Application.configureSecurity() {
     }
 
     if (configuration.propertyOrNull("security.okta") != null) {
-        val oktaConfig = oktaConfigReader(configuration)
-        val redirects = mutableMapOf<String, String>()
-        authentication {
+        configureOkta(configuration, securityProvider)
+    }
+}
 
-            oauth("okta") {
-                urlProvider = { "http://localhost:8080/login/authorization-callback" }
-                providerLookup = { oktaConfig.asOAuth2Config{ call, state ->
+private fun Application.configureOkta(
+    configuration: ApplicationConfig,
+    securityProvider: SecurityProvider
+) {
+    val oktaConfig = oktaConfigReader(configuration)
+    val redirects = mutableMapOf<String, String>()
+    authentication {
+
+        oauth("okta") {
+            urlProvider = { "http://localhost:8080/login/authorization-callback" }
+            providerLookup = {
+                oktaConfig.asOAuth2Config { call, state ->
                     redirects[state] = call.request.queryParameters["redirectUrl"] ?: "/"
-                } }
-                client = HttpClient()
+                }
             }
+            client = HttpClient()
         }
-        routing {
-            authenticate("okta") {
+    }
+    routing {
+        authenticate("okta") {
 
-                get("login") {
-                    //call.respondRedirect("/login/authorization-callback")
-                }
+            get("login") {
+                //call.respondRedirect("/login/authorization-callback")
+            }
 
-                get("login/authorization-callback") {
-                    // Get a principal from OAuth2 token
-                    val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>()
-                        ?: throw Exception("No principal was given")
-                    // Parse and verify access token with OktaJwtVerifier
+            get("login/authorization-callback") {
+                // Get a principal from OAuth2 token
+                val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>()
+                    ?: throw Exception("No principal was given")
+                // Parse and verify access token with OktaJwtVerifier
 
-                    val session = securityProvider.login(principal)
+                val session = securityProvider.login(principal)
 
-                    call.sessions.set(session)
+                call.sessions.set(session)
 
-                    val redirect = redirects[principal.state!!]
-                    call.respondRedirect(redirect!!)
-                }
+                val redirect = redirects[principal.state!!]
+                call.respondRedirect(redirect!!)
             }
         }
     }
 }
 
-data class UserSession(
-    val username: String,
-    val accessToken: String,
-    val name: String) : Principal

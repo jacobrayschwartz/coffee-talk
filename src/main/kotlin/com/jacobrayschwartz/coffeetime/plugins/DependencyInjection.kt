@@ -1,8 +1,8 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
-import com.jacobrayschwartz.coffeetime.modules.buildConfigModule
-import com.jacobrayschwartz.coffeetime.modules.buildHttpClientModule
-import com.jacobrayschwartz.coffeetime.modules.buildSecurityModule
+import com.jacobrayschwartz.coffeetime.modules.security.buildConfigModule
+import com.jacobrayschwartz.coffeetime.modules.security.buildHttpClientModule
+import com.jacobrayschwartz.coffeetime.modules.security.buildSecurityModule
 import io.ktor.client.*
 import io.ktor.server.application.*
 import io.ktor.server.config.*
