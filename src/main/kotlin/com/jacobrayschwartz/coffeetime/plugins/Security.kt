@@ -1,8 +1,8 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
+import com.jacobrayschwartz.coffeetime.modules.SecurityProvider
 import com.jacobrayschwartz.coffeetime.security.asOAuth2Config
 import com.jacobrayschwartz.coffeetime.security.oktaConfigReader
-import com.okta.jwt.JwtVerifiers
 import io.ktor.client.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -11,32 +11,43 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
+import org.koin.ktor.ext.inject
 import kotlin.collections.set
 
-fun Application.configureSecurity(configuration: ApplicationConfig) {
+fun Application.configureSecurity() {
+
+    val configuration by inject<ApplicationConfig>()
+    val securityProvider by inject<SecurityProvider>()
 
     install(Sessions) {
         val secretEncryptKey = hex(configuration.tryGetString("security.sessionEncryptKey") ?: throw IllegalArgumentException("Session encrypt key is required"))
         val secretSignKey = hex(configuration.tryGetString("security.sessionSignKey") ?: throw IllegalArgumentException("Session sign key is required"))
         cookie<UserSession>("COFFEE_TIME_SESSION") {
             cookie.path = "/"
-            cookie.maxAgeInSeconds = 10
+            cookie.maxAgeInSeconds = 60
             transform(SessionTransportTransformerEncrypt(secretEncryptKey, secretSignKey))
+        }
+    }
+
+    routing {
+        get("logout") {
+            val userSession : UserSession? = call.sessions.get<UserSession>()
+
+            val logoutRedirect =
+                if(userSession != null){
+                    securityProvider.buildLogoutRedirect(userSession)
+                } else{
+                    "/"
+                }
+
+            call.sessions.clear<UserSession>()
+            call.respondRedirect(logoutRedirect)
         }
     }
 
     if (configuration.propertyOrNull("security.okta") != null) {
         val oktaConfig = oktaConfigReader(configuration)
         val redirects = mutableMapOf<String, String>()
-
-        val accessTokenVerifier = JwtVerifiers.accessTokenVerifierBuilder()
-            .setAudience(oktaConfig.audience)
-            .setIssuer(oktaConfig.orgUrl)
-            .build()
-        val idVerifier = JwtVerifiers.idTokenVerifierBuilder()
-            .setClientId(oktaConfig.clientId)
-            .setIssuer(oktaConfig.orgUrl)
-            .build()
         authentication {
 
             oauth("okta") {
@@ -59,20 +70,8 @@ fun Application.configureSecurity(configuration: ApplicationConfig) {
                     val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>()
                         ?: throw Exception("No principal was given")
                     // Parse and verify access token with OktaJwtVerifier
-                    val accessToken = accessTokenVerifier.decode(principal.accessToken)
-                    // Get idTokenString, parse and verify id token
-                    val idTokenString = principal.extraParameters["id_token"]
-                        ?: throw Exception("id_token wasn't returned")
-                    val idToken = idVerifier.decode(idTokenString, null)
-                    // Try to get handle from the id token, of failback to subject field in access token
-                    val fullName = (idToken.claims["name"] ?: accessToken.claims["sub"] ?: "UNKNOWN_NAME").toString()
-                    println("User $fullName logged in successfully")
-                    // Create a session object with "slugified" username
-                    val session = UserSession(
-                        username = idToken.claims["preferred_username"]?.toString() ?: fullName.replace("[^a-zA-Z0-9]".toRegex(), ""),
-                        accessToken = idTokenString,
-                        name = fullName
-                    )
+
+                    val session = securityProvider.login(principal)
 
                     call.sessions.set(session)
 
@@ -84,4 +83,7 @@ fun Application.configureSecurity(configuration: ApplicationConfig) {
     }
 }
 
-data class UserSession(val username: String, val accessToken: String, val name: String)
+data class UserSession(
+    val username: String,
+    val accessToken: String,
+    val name: String) : Principal

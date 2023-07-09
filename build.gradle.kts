@@ -48,6 +48,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
     implementation("com.okta.jwt:okta-jwt-verifier:$okta_jwt_version")
     implementation("com.okta.jwt:okta-jwt-verifier-impl:$okta_jwt_version")

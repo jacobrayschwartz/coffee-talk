@@ -31,12 +31,5 @@ fun Application.configureRouting() {
                 call.respondRedirect(redirectUrl)
             }
         }
-
-
-
-        get("logout") {
-            call.sessions.clear<UserSession>()
-            call.respondRedirect("/")
-        }
     }
 }
