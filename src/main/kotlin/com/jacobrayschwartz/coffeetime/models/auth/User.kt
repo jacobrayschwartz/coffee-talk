@@ -1,12 +1,13 @@
 package com.jacobrayschwartz.coffeetime.models.auth
 
 import kotlinx.datetime.Instant
-import java.util.*
 
 /**
  * Database model for tracking users - not to be confused with the session model
  * @see com.jacobrayschwartz.coffeetime.plugins.UserSession for session
- * @param userUUID UUID of user provided from OAuth
+ * @param id ID of user (internal to app, not used by OIDC)
+ * @param oidcIss Issuer of the user's OIDC token
+ * @param oidcSub ID of the user from OIDC (combine with oidcIss for unique ID)
  * @param userEmail Email address for user
  * @param provider OAuth provider type
  * @param displayName Display name for user
@@ -15,7 +16,9 @@ import java.util.*
  * @param roles Roles user has access to
  */
 data class User(
-    val userUUID: UUID,
+    val id: Long,
+    val oidcIss: String,
+    val oidcSub: String,
     val userEmail: String,
     val provider: String,
     val displayName: String,

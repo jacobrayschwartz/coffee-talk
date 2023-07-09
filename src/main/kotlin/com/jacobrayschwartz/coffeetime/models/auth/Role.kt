@@ -23,7 +23,7 @@ enum class RoleType {
 
 /**
  * @param id ID of the role
- * @param userUUID ID of the user this role belongs to
+ * @param userId ID of the user this role belongs to
  * @param groupId ID of the group this role belongs to - may be null if applies to entire site
  * @param roleType Type of role/permission this user has for this group
  * @param createdAt When the group was created
@@ -31,7 +31,7 @@ enum class RoleType {
  */
 data class Role(
     val id: Long,
-    val userUUID: UUID,
+    val userId: Long,
     val roleType: RoleType,
     val groupId: Int?,
     val createdAt: Instant,
