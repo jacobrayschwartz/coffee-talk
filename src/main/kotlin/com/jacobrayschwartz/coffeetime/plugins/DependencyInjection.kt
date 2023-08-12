@@ -1,8 +1,9 @@
 package com.jacobrayschwartz.coffeetime.plugins
 
-import com.jacobrayschwartz.coffeetime.modules.security.buildConfigModule
-import com.jacobrayschwartz.coffeetime.modules.security.buildHttpClientModule
-import com.jacobrayschwartz.coffeetime.modules.security.buildSecurityModule
+import com.jacobrayschwartz.coffeetime.modules.buildConfigModule
+import com.jacobrayschwartz.coffeetime.modules.buildHttpClientModule
+import com.jacobrayschwartz.coffeetime.modules.buildDatabaseModule
+import com.jacobrayschwartz.coffeetime.modules.buildSecurityModule
 import io.ktor.client.*
 import io.ktor.server.application.*
 import io.ktor.server.config.*
@@ -15,7 +16,8 @@ fun Application.configureDependencyInjection(configuration: ApplicationConfig, h
         modules(
             buildConfigModule(configuration),
             buildHttpClientModule(httpClient),
-            buildSecurityModule(configuration)
+            buildSecurityModule(configuration),
+            buildDatabaseModule(configuration)
         )
     }
 }

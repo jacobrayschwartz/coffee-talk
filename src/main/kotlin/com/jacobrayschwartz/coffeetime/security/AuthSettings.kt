@@ -8,4 +8,3 @@ fun oktaConfigReader(config: ApplicationConfig): OktaConfig = OktaConfig(
     clientSecret = config.tryGetString("security.okta.clientSecret") ?: throw IllegalArgumentException("security.okta.clientSecret must be specified"),
     audience = config.tryGetString("security.okta.audience") ?: "api://default"
 )
-

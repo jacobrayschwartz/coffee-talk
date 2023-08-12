@@ -6,75 +6,74 @@ import io.ktor.server.response.*
 import kotlinx.coroutines.*
 import java.sql.*
 import io.ktor.server.application.*
+import io.ktor.server.config.*
 import io.ktor.server.routing.*
 
-fun Application.configureDatabases() {
 
-    val dbConnection: Connection = connectToPostgres(embedded = true)
-    val cityService = CityService(dbConnection)
-    routing {
-        // Create city
-        post("/cities") {
-            val city = call.receive<City>()
-            val id = cityService.create(city)
-            call.respond(HttpStatusCode.Created, id)
+data class PostgresConfig(
+    val host: String,
+    val port: Int,
+    val user: String,
+    val password: String,
+    val database: String,
+    val schema: String?,
+    val socketTimeout: Int = 3600
+)
+
+data class MysqlConfig(
+    val host: String,
+    val port: Int,
+    val user: String,
+    val password: String,
+    val database: String
+)
+
+enum class DatabaseTypes { Postgres, Mysql, H2 }
+
+data class DatabaseConfig(
+    val databaseType: DatabaseTypes,
+    val postgresConfig: PostgresConfig? = null,
+    val mysqlConfig: MysqlConfig? = null
+)
+
+private const val CONFIG_KEY_DB_POSTGRES = "db.postgres"
+private const val CONFIG_KEY_DB_MYSQL = "db.mysql"
+private const val CONFIG_KEY_DB_H2 = "db.h2"
+
+fun databaseConfigReader(config: ApplicationConfig): DatabaseConfig {
+    val dbConnectionPropNames = arrayOf(CONFIG_KEY_DB_POSTGRES, CONFIG_KEY_DB_MYSQL, CONFIG_KEY_DB_MYSQL)
+
+    val dbConnectionProps = dbConnectionPropNames.mapNotNull {
+        val props = config.propertyOrNull(it)
+        if(props != null){
+            return@mapNotNull Pair(it, props)
+        } else {
+            null
         }
-        // Read city
-        get("/cities/{id}") {
-            val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            try {
-                val city = cityService.read(id)
-                call.respond(HttpStatusCode.OK, city)
-            } catch (e: Exception) {
-                call.respond(HttpStatusCode.NotFound)
-            }
-        }
-        // Update city
-        put("/cities/{id}") {
-            val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            val user = call.receive<City>()
-            cityService.update(id, user)
-            call.respond(HttpStatusCode.OK)
-        }
-        // Delete city
-        delete("/cities/{id}") {
-            val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            cityService.delete(id)
-            call.respond(HttpStatusCode.OK)
-        }
+    }
+
+    if(dbConnectionProps.isEmpty()){
+        throw Exception("Database connection must be provided in config. Specify one of ${dbConnectionPropNames.joinToString(", ")}")
+    }
+    else if(dbConnectionProps.size > 1){
+        throw Exception("Only one database connection can be provided. Found ${dbConnectionProps.joinToString(", ")}")
+    }
+
+    val connectionInfo = dbConnectionProps[0]
+    when(connectionInfo.first){
+        CONFIG_KEY_DB_POSTGRES -> return DatabaseConfig(databaseType = DatabaseTypes.Postgres, postgresConfig = postgresConfigReader(config))
+        else -> throw NotImplementedError("Database connection for ${connectionInfo.first} has not been implemented yet")
     }
 }
 
-/**
- * Makes a connection to a Postgres database.
- *
- * In order to connect to your running Postgres process,
- * please specify the following parameters in your configuration file:
- * - postgres.url -- Url of your running database process.
- * - postgres.user -- Username for database connection
- * - postgres.password -- Password for database connection
- *
- * If you don't have a database process running yet, you may need to [download]((https://www.postgresql.org/download/))
- * and install Postgres and follow the instructions [here](https://postgresapp.com/).
- * Then, you would be able to edit your url,  which is usually "jdbc:postgresql://host:port/database", as well as
- * user and password values.
- *
- *
- * @param embedded -- if [true] defaults to an embedded database for tests that runs locally in the same process.
- * In this case you don't have to provide any parameters in configuration file, and you don't have to run a process.
- *
- * @return [Connection] that represent connection to the database. Please, don't forget to close this connection when
- * your application shuts down by calling [Connection.close]
- * */
-fun Application.connectToPostgres(embedded: Boolean): Connection {
-    Class.forName("org.postgresql.Driver")
-    if (embedded) {
-        return DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "root", "")
-    } else {
-        val url = environment.config.property("postgres.url").getString()
-        val user = environment.config.property("postgres.user").getString()
-        val password = environment.config.property("postgres.password").getString()
-
-        return DriverManager.getConnection(url, user, password)
-    }
+fun postgresConfigReader(config: ApplicationConfig): PostgresConfig{
+    return PostgresConfig(
+        host = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.host") ?: throw IllegalArgumentException("$CONFIG_KEY_DB_POSTGRES.host is required"),
+        port = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.port")?.toIntOrNull() ?: throw IllegalArgumentException("$CONFIG_KEY_DB_POSTGRES.port is required"),
+        database = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.database") ?: throw IllegalArgumentException("$CONFIG_KEY_DB_POSTGRES.database is required"),
+        user = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.user") ?: throw IllegalArgumentException("$CONFIG_KEY_DB_POSTGRES.user is required"),
+        password = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.password") ?: throw IllegalArgumentException("$CONFIG_KEY_DB_POSTGRES.password is required"),
+        schema = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.schema"),
+        socketTimeout = config.tryGetString("$CONFIG_KEY_DB_POSTGRES.socketTimeout")?.toIntOrNull() ?: 3600
+    )
 }

@@ -12,3 +12,10 @@ security:
         orgUrl: $OKTA_OAUTH2_ISSUER
         clientId: $OKTA_OAUTH2_CLIENT_ID
         clientSecret: $OKTA_OAUTH2_CLIENT_SECRET
+db:
+    postgres:
+        host: localhost
+        port: 5432
+        database: coffee_time
+        user: coffee_time
+        password: coffee_time

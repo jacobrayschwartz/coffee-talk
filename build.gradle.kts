@@ -6,6 +6,8 @@ val postgres_version: String by project
 val h2_version: String by project
 val okta_jwt_version: String by project
 val koin_version: String by project
+val hikari_version: String by project
+val jdbi_version: String by project
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -39,8 +41,16 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus:$prometeus_version")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
+
     implementation("org.postgresql:postgresql:$postgres_version")
+    implementation("com.zaxxer:HikariCP:$hikari_version")
     implementation("com.h2database:h2:$h2_version")
+    implementation(platform("org.jdbi:jdbi3-bom:3.32.0"))
+    implementation("org.jdbi:jdbi3-core")
+    implementation("org.jdbi:jdbi3-postgres")
+    implementation("org.jdbi:jdbi3-kotlin")
+    implementation("org.jdbi:jdbi3-kotlin-sqlobject")
+
     implementation("io.ktor:ktor-server-websockets-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
